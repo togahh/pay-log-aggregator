@@ -7,12 +7,10 @@ services:
       - "8000:8000"
     environment:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - REDIS_URL=redis://redis:6379
       - JAEGER_AGENT_HOST=jaeger
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:14268/api/traces
     depends_on:
       - elasticsearch
-      - redis
       - jaeger
     volumes:
       - ./logs:/app/logs
@@ -27,13 +25,6 @@ services:
       - "9200:9200"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -53,5 +44,4 @@ services:
 
 volumes:
   elasticsearch_data:
-  redis_data:
   prometheus_data:

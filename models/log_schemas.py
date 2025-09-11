@@ -25,9 +25,10 @@ class LogEntry(BaseModel):
             datetime: lambda v: v.isoformat()
         }
 
-class LogBatch(BaseModel):
-    logs: List[LogEntry]
-    batch_id: Optional[str] = None
+class IngestResponse(BaseModel):
+    success: bool
+    message: str
+    correlation_id: str
 
 class SearchQuery(BaseModel):
     query: str

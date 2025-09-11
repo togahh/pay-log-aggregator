@@ -1,14 +1,15 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import structlog
 import os
+import uuid
+import asyncio
 from typing import List
 from datetime import datetime
 
-from models.log_schemas import LogEntry, LogBatch, SearchQuery, LogSearchResponse, ErrorPattern
+from models.log_schemas import LogEntry, SearchQuery, LogSearchResponse, ErrorPattern, IngestResponse
 from services.search_engine import SearchEngine
-from services.log_collector import LogCollector
 from config.otel_config import setup_telemetry, instrument_app
 
 # Setup structured logging
@@ -34,14 +35,12 @@ logger = structlog.get_logger()
 
 # Initialize services
 search_engine = SearchEngine()
-log_collector = LogCollector()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Log Aggregator API...")
     await search_engine.initialize()
-    await log_collector.initialize()
     logger.info("Services initialized")
     yield
     # Shutdown
@@ -58,14 +57,8 @@ app = FastAPI(
 tracer = setup_telemetry()
 app = instrument_app(app)
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Configure this properly for production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Simple CORS for development
+app.add_middleware(CORSMiddleware, allow_origins=["*"])
 
 @app.get("/")
 async def root():
@@ -74,60 +67,102 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    queue_size = await log_collector.get_queue_size()
-    logger.info("Health check", queue_size=queue_size)
+    logger.info("Health check")
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "queue_size": queue_size
+        "elasticsearch": "connected"
     }
 
-@app.post("/logs/ingest")
-async def ingest_log(log: LogEntry, background_tasks: BackgroundTasks):
+@app.post("/logs/ingest", response_model=IngestResponse)
+async def ingest_log(log_entry: LogEntry) -> IngestResponse:
     """Ingest a single log entry"""
     with tracer.start_as_current_span("ingest_log") as span:
-        span.set_attribute("log.level", log.level)
-        span.set_attribute("log.source", log.source)
-        
-        # Queue for processing
-        success = await log_collector.queue_log(log)
-        if not success:
-            logger.error("Failed to queue log", log_id=log.trace_id)
-            raise HTTPException(status_code=500, detail="Failed to queue log")
-        
-        # Index in background
-        background_tasks.add_task(index_log_async, log)
-        
-        logger.info("Log ingested", 
-                   level=log.level, 
-                   source=log.source, 
-                   trace_id=log.trace_id)
-        
-        return {"message": "Log ingested successfully", "trace_id": log.trace_id}
+        try:
+            # Add correlation ID for tracing
+            correlation_id = str(uuid.uuid4())
+            log_entry_dict = log_entry.model_dump()
+            log_entry_dict["correlation_id"] = correlation_id
+            
+            span.set_attribute("correlation_id", correlation_id)
+            span.set_attribute("log_level", log_entry.level)
+            span.set_attribute("log_source", log_entry.source)
+            
+            # Process log immediately in background
+            asyncio.create_task(process_log_entry(log_entry_dict))
+            
+            logger.info(
+                "Log entry received",
+                correlation_id=correlation_id,
+                source=log_entry.source,
+                level=log_entry.level
+            )
+            
+            return IngestResponse(
+                success=True,
+                message="Log entry queued for processing",
+                correlation_id=correlation_id
+            )
+            
+        except Exception as e:
+            span.record_exception(e)
+            span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+            logger.error("Failed to ingest log", error=str(e))
+            raise HTTPException(status_code=500, detail=f"Failed to ingest log: {str(e)}")
 
-@app.post("/logs/batch-ingest")
-async def ingest_logs_batch(batch: LogBatch, background_tasks: BackgroundTasks):
-    """Ingest multiple logs in batch"""
-    with tracer.start_as_current_span("ingest_logs_batch") as span:
-        span.set_attribute("batch.size", len(batch.logs))
-        
-        # Queue for processing
-        queued_count = await log_collector.queue_logs_batch(batch.logs)
-        
-        # Index in background
-        background_tasks.add_task(index_logs_batch_async, batch.logs)
-        
-        logger.info("Batch ingested", 
-                   batch_size=len(batch.logs), 
-                   queued=queued_count,
-                   batch_id=batch.batch_id)
-        
-        return {
-            "message": "Batch ingested successfully",
-            "batch_id": batch.batch_id,
-            "logs_count": len(batch.logs),
-            "queued_count": queued_count
-        }
+
+async def process_log_entry(log_entry_dict: dict):
+    """Process a single log entry in the background"""
+    try:
+        # Store in Elasticsearch
+        await search_engine.index_log(log_entry_dict)
+        logger.info(
+            "Log entry processed",
+            correlation_id=log_entry_dict.get("correlation_id"),
+            source=log_entry_dict.get("source")
+        )
+    except Exception as e:
+        logger.error(
+            "Failed to process log entry",
+            correlation_id=log_entry_dict.get("correlation_id"),
+            error=str(e)
+        )
+
+@app.post("/logs/batch-ingest", response_model=IngestResponse)
+async def batch_ingest_logs(logs: List[LogEntry]) -> IngestResponse:
+    """Ingest multiple log entries"""
+    with tracer.start_as_current_span("batch_ingest_logs") as span:
+        try:
+            correlation_id = str(uuid.uuid4())
+            span.set_attribute("correlation_id", correlation_id)
+            span.set_attribute("batch_size", len(logs))
+            
+            # Process all logs in background
+            tasks = []
+            for log_entry in logs:
+                log_entry_dict = log_entry.model_dump()
+                log_entry_dict["correlation_id"] = correlation_id
+                tasks.append(process_log_entry(log_entry_dict))
+            
+            asyncio.create_task(asyncio.gather(*tasks))
+            
+            logger.info(
+                "Batch logs received",
+                correlation_id=correlation_id,
+                count=len(logs)
+            )
+            
+            return IngestResponse(
+                success=True,
+                message=f"Batch of {len(logs)} log entries queued for processing",
+                correlation_id=correlation_id
+            )
+            
+        except Exception as e:
+            span.record_exception(e)
+            span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+            logger.error("Failed to ingest batch logs", error=str(e))
+            raise HTTPException(status_code=500, detail=f"Failed to ingest batch logs: {str(e)}")
 
 @app.get("/logs/search", response_model=LogSearchResponse)
 async def search_logs(
@@ -187,23 +222,13 @@ async def get_error_patterns(hours: int = 24):
 @app.get("/metrics")
 async def get_metrics():
     """Get service metrics"""
-    queue_size = await log_collector.get_queue_size()
     
     # In a real implementation, you'd integrate with Prometheus metrics
     return {
-        "queue_size": queue_size,
+        "service": "log-aggregator",
         "timestamp": datetime.utcnow().isoformat(),
-        "service": "log-aggregator"
+        "status": "running"
     }
-
-# Background tasks
-async def index_log_async(log: LogEntry):
-    """Background task to index a single log"""
-    await search_engine.index_log(log)
-
-async def index_logs_batch_async(logs: List[LogEntry]):
-    """Background task to index logs batch"""
-    await search_engine.index_logs_batch(logs)
 
 if __name__ == "__main__":
     import uvicorn
