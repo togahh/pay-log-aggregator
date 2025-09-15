@@ -10,8 +10,10 @@ services:
       - JAEGER_AGENT_HOST=jaeger
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:14268/api/traces
     depends_on:
-      - elasticsearch
-      - jaeger
+      elasticsearch:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
     volumes:
       - ./logs:/app/logs
 
@@ -25,6 +27,12 @@ services:
       - "9200:9200"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   jaeger:
     image: jaegertracing/all-in-one:latest
