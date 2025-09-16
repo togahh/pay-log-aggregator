@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Pay Log Aggregator",
-    description="High-performance log aggregation and search system",
+    description="Log aggregation and search system",
     version="1.0.0",
     lifespan=lifespan
 )

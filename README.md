@@ -1,274 +1,226 @@
 # Pay Log Aggregator
 
-A high-performance log aggregation and search system built with FastAPI, Elasticsearch, and OpenTelemetry. This system collects logs from multiple sources, aggregates them, and provides a searchable interface for finding specific patterns or errors.
+A log aggregation and search system built with FastAPI and Elasticsearch. This was created as an interview exercise to demonstrate skills in large-scale data processing and search functionality.
 
-## 🚀 Features
+## What it does
 
-- **Multi-source log ingestion** with batch processing
-- **Real-time search** with Elasticsearch backend
-- **Error pattern detection** and analysis
-- **Distributed tracing** with OpenTelemetry
-- **Structured JSON logging** with correlation IDs
-- **Container-ready** with Docker Compose
-- **Production observability** with metrics and health checks
+This system collects logs from multiple sources, stores them in Elasticsearch, and provides a searchable interface for finding specific patterns or errors. It follows best practices with containerization, structured logging, and observability.
 
-## 🏗️ Architecture
+## Key features
+
+- Multi-source log ingestion with batch processing
+- Real-time search using Elasticsearch
+- Error pattern detection and analysis
+- Distributed tracing with OpenTelemetry
+- Structured JSON logging
+- Docker containerization
+- Health checks and metrics
+
+## Architecture
 
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Log Sources   │───▶│   FastAPI App    │───▶│  Elasticsearch  │
-│                 │    │                  │    │                 │
-│ • Applications  │    │ • Log Ingestion  │    │ • Full-text     │
-│ • Services      │    │ • Validation     │    │   Search        │
-│ • Infrastructure│    │ • Queuing        │    │ • Aggregations  │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                              │                          
-                              ▼                          
-                       ┌──────────────────┐              
-                       │      Redis       │              
-                       │                  │              
-                       │ • Queue          │              
-                       │ • Caching        │              
-                       └──────────────────┘              
+Log Sources → FastAPI App → Elasticsearch
+                  ↓
+            OpenTelemetry Traces
 ```
 
-## 📊 Service Level Objectives (SLOs)
+The system accepts logs via HTTP endpoints, validates them, and stores them in Elasticsearch for searching.
 
-### Availability
-- **SLO**: 99.9% uptime (8.77 hours downtime/year)
-- **SLI**: Ratio of successful health check responses
-- **Why**: Log aggregation is critical infrastructure that must be highly available
+## Service Level Objectives (SLOs)
 
-### Latency
-- **SLO**: 95% of log ingestion requests complete within 100ms
-- **SLI**: P95 latency of `/logs/ingest` endpoint
-- **Why**: Fast ingestion prevents log loss and maintains real-time capabilities
+I chose these SLOs because they reflect the core requirements of a log aggregation system:
 
-### Search Performance
-- **SLO**: 95% of search queries return results within 500ms
-- **SLI**: P95 latency of `/logs/search` endpoint
-- **Why**: Quick search responses are essential for troubleshooting and monitoring
+**Availability: 99.9% uptime**
+- Measured by successful health check responses
+- Log systems need high availability since they're critical infrastructure
 
-### Throughput
-- **SLO**: Process at least 10,000 logs per second during peak load
-- **SLI**: Rate of successful log ingestions per second
-- **Why**: System must handle high-volume log streams from multiple services
+**Ingestion Latency: 95% of requests under 100ms** 
+- Measured by P95 latency of the /logs/ingest endpoint
+- Fast ingestion prevents log loss during high traffic
 
-### Error Rate
-- **SLO**: <0.1% error rate for log ingestion
-- **SLI**: Ratio of failed vs successful ingestion requests
-- **Why**: Log loss is unacceptable for audit and debugging purposes
+**Search Performance: 95% of queries under 500ms**
+- Measured by P95 latency of /logs/search endpoint  
+- Quick searches are essential for debugging and troubleshooting
 
-## 🛠️ Technology Stack
+**Throughput: Handle 10,000 logs per second**
+- Measured by successful ingestions per second
+- Must handle high-volume streams from multiple services
 
-- **FastAPI** - High-performance async web framework
-- **Elasticsearch** - Full-text search and analytics engine
-- **Redis** - In-memory queue and caching
-- **OpenTelemetry** - Distributed tracing and observability
-- **Structlog** - Structured logging with JSON output
-- **Docker** - Containerization and orchestration
-- **Prometheus** - Metrics collection and monitoring
-- **Jaeger** - Distributed tracing UI
+**Error Rate: Less than 0.1% ingestion failures**
+- Measured by failed vs successful ingestion ratio
+- Log loss is unacceptable for audit and debugging
 
-## 🚀 Quick Start
+## Tech stack
+
+- FastAPI for the web framework
+- Elasticsearch for search and storage
+- OpenTelemetry for tracing and observability  
+- Structlog for structured JSON logging
+- Docker for containerization
+- Jaeger for trace visualization
+
+## Getting started
 
 ### Prerequisites
 - Docker and Docker Compose
 - Python 3.9+ (for local development)
 
-### Running with Docker Compose
+### Run with Docker
 
-1. **Clone and start services:**
+1. Clone and start:
 ```bash
 git clone git@github.com:togahh/pay-log-aggregator.git
 cd pay-log-aggregator
-docker-compose up -d
+docker compose up -d
 ```
 
-2. **Verify services are running:**
+2. Check it's working:
 ```bash
-# Check service health
 curl http://localhost:8000/health
-
-# View Jaeger UI (tracing)
-open http://localhost:16686
-
-# View Elasticsearch
-curl http://localhost:9200/_cluster/health
 ```
 
-### Local Development
+### Local development
 
-1. **Setup virtual environment:**
+1. Setup Python environment:
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-2. **Start dependencies:**
+2. Start dependencies:
 ```bash
-docker-compose up -d elasticsearch redis jaeger
+docker compose up -d elasticsearch jaeger
 ```
 
-3. **Run the application:**
+3. Run the app:
 ```bash
 python main.py
 ```
 
-## 📡 API Endpoints
+## API endpoints
 
-### Health & Metrics
-- `GET /` - Service status
-- `GET /health` - Detailed health check
-- `GET /metrics` - Service metrics
+**Basic endpoints:**
+- GET / - Service status
+- GET /health - Health check
+- GET /metrics - Service metrics
 
-### Log Ingestion
-- `POST /logs/ingest` - Ingest single log entry
-- `POST /logs/batch-ingest` - Batch log ingestion
+**Log ingestion:**
+- POST /logs/ingest - Add a single log
+- POST /logs/batch-ingest - Add multiple logs
 
-### Search & Analysis
-- `GET /logs/search` - Search logs with filters
-- `GET /logs/patterns` - Find error patterns
+**Search:**
+- POST /logs/search - Search logs with filters
+- GET /logs/patterns - Find error patterns
 
-### Interactive Documentation
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+**Documentation:**
+- http://localhost:8000/docs - Interactive API docs
+- http://localhost:8000/redoc - Documentation
 
-## 🔍 Usage Examples
+## Usage examples
 
-### Ingest a Single Log
+### Add a log entry
 ```bash
 curl -X POST "http://localhost:8000/logs/ingest" \
   -H "Content-Type: application/json" \
   -d '{
     "level": "ERROR",
-    "message": "Database connection failed",
+    "message": "Database connection failed", 
     "source": "web-server-01",
-    "service": "user-service",
-    "metadata": {
-      "error_code": "DB_CONN_TIMEOUT",
-      "retry_count": 3
-    }
+    "service": "user-service"
   }'
 ```
 
-### Batch Ingest Multiple Logs
+### Search logs
+```bash
+curl -X POST "http://localhost:8000/logs/search" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "error",
+    "level": "ERROR",
+    "limit": 50
+  }'
+```
+
+### Add multiple logs at once
 ```bash
 curl -X POST "http://localhost:8000/logs/batch-ingest" \
   -H "Content-Type: application/json" \
-  -d '{
-    "batch_id": "batch-001",
-    "logs": [
-      {
-        "level": "INFO",
-        "message": "User login successful",
-        "source": "auth-service",
-        "service": "authentication"
-      },
-      {
-        "level": "WARNING", 
-        "message": "Rate limit exceeded",
-        "source": "api-gateway",
-        "service": "gateway"
-      }
-    ]
-  }'
+  -d '[
+    {
+      "level": "INFO",
+      "message": "User login successful",
+      "source": "auth-service"
+    },
+    {
+      "level": "WARNING",
+      "message": "Rate limit exceeded", 
+      "source": "api-gateway"
+    }
+  ]'
 ```
 
-### Search Logs
-```bash
-# Search for errors in the last hour
-curl "http://localhost:8000/logs/search?query=error&level=ERROR&limit=50"
-
-# Search by service and time range
-curl "http://localhost:8000/logs/search?service=user-service&start_time=2024-01-01T00:00:00"
-```
-
-### Get Error Patterns
-```bash
-# Find common error patterns from last 24 hours
-curl "http://localhost:8000/logs/patterns?hours=24"
-```
-
-## 🏗️ Project Structure
+## Project structure
 
 ```
-├── main.py                 # FastAPI application
+├── main.py                 # Main FastAPI application
 ├── requirements.txt        # Python dependencies
-├── Dockerfile             # Container definition
-├── docker-compose.yml     # Multi-service setup
+├── Dockerfile             # Container setup
+├── docker-compose.yml     # Multi-service configuration
+├── wait-for-it.py         # Service startup coordination
 ├── config/
-│   ├── otel_config.py     # OpenTelemetry configuration
-│   └── prometheus.yml     # Prometheus configuration
+│   └── otel_config.py     # OpenTelemetry setup
 ├── models/
-│   └── log_schemas.py     # Pydantic data models
+│   └── log_schemas.py     # Data models and validation
 ├── services/
-│   ├── search_engine.py   # Elasticsearch integration
-│   └── log_collector.py   # Redis queue management
-└── README.md              # This file
+│   └── search_engine.py   # Elasticsearch integration
+└── tests/
+    ├── test_simple_demo.py    # Main unit tests
+    └── test_models_unit.py    # Model validation tests
 ```
 
-## 🔧 Configuration
+## Running tests
 
-### Environment Variables
 ```bash
-# Elasticsearch
-ELASTICSEARCH_URL=http://localhost:9200
+# Install test dependencies
+pip install pytest pytest-asyncio httpx
 
-# Redis
-REDIS_URL=redis://localhost:6379
-
-# OpenTelemetry
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:14268/api/traces
-JAEGER_AGENT_HOST=localhost
+# Run tests
+pytest tests/test_simple_demo.py -v
+pytest tests/test_models_unit.py -v
 ```
 
-## 📈 Monitoring & Observability
+## Monitoring
 
-### Metrics
-- Log ingestion rate and latency
+**Available interfaces:**
+- http://localhost:8000/docs - API documentation and testing
+- http://localhost:16686 - Jaeger tracing UI
+- http://localhost:9200 - Elasticsearch cluster info
+
+**What's monitored:**
+- Request latency and throughput
+- Error rates and patterns  
 - Search query performance
-- Queue size and processing rate
-- Error rates and patterns
+- Service health and availability
 
-### Tracing
-- End-to-end request tracing with OpenTelemetry
-- Correlation across service boundaries
-- Performance bottleneck identification
+## Configuration
 
-### Logging
-- Structured JSON logs with correlation IDs
-- Configurable log levels
-- Centralized log aggregation
+Key environment variables:
+```bash
+ELASTICSEARCH_URL=http://localhost:9200
+OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:14268/api/traces
+```
 
-## 🔒 Production Considerations
+## Production considerations
 
-### Security
-- Configure CORS origins for production
-- Add authentication/authorization
-- Enable TLS/SSL encryption
-- Implement rate limiting
+For production deployment, you'd want to add:
 
-### Scalability
-- Horizontal scaling with load balancer
-- Elasticsearch cluster configuration
-- Redis clustering for high availability
-- Container orchestration (Kubernetes)
+- Authentication and authorization
+- HTTPS/TLS encryption
+- Rate limiting and input validation
+- Elasticsearch cluster setup
+- Log retention policies
+- Backup and recovery procedures
+- Load balancing for high availability
 
-### Reliability
-- Circuit breakers for external dependencies
-- Graceful degradation strategies
-- Data backup and recovery procedures
-- Multi-region deployment
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make changes with tests
-4. Submit a pull request
-
-## 📝 License
-
-MIT License - see LICENSE file for details

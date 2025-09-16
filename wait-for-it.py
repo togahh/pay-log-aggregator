@@ -20,25 +20,25 @@ async def wait_for_elasticsearch(host="elasticsearch:9200", timeout=60):
         try:
             health = await client.cluster.health()
             if health['status'] in ['yellow', 'green']:
-                logger.info("✅ Elasticsearch is ready!")
+                logger.info("Elasticsearch is ready!")
                 await client.close()
                 return True
         except Exception as e:
-            logger.info(f"⏳ Waiting for Elasticsearch... ({e})")
+            logger.info(f"Waiting for Elasticsearch... ({e})")
             await asyncio.sleep(2)
     
     await client.close()
-    logger.error("❌ Elasticsearch not ready within timeout")
+    logger.error("Elasticsearch not ready within timeout")
     return False
 
 async def main():
     """Main wait function"""
-    logger.info("🔄 Waiting for services to be ready...")
+    logger.info("Waiting for services to be ready...")
     
     if not await wait_for_elasticsearch():
         sys.exit(1)
     
-    logger.info("🚀 All services ready! Starting application...")
+    logger.info("All services ready! Starting application...")
     return True
 
 if __name__ == "__main__":
