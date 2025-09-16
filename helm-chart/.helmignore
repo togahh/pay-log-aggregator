@@ -1,0 +1,47 @@
+# Ignore git files
+.git
+.gitignore
+
+# Ignore IDE files
+.vscode/
+.idea/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore backup files
+*.bak
+*.tmp
+*~
+
+# Ignore test files and directories
+tests/
+test/
+*_test.go
+*_test.py
+
+# Ignore development files
+.env
+.env.local
+.env.development
+.env.test
+
+# Ignore build artifacts
+dist/
+build/
+target/
+out/
+
+# Ignore dependency files
+node_modules/
+venv/
+__pycache__/
+*.pyc
+
+# Ignore documentation
+docs/
+documentation/
+*.md
+!README.md
+!NOTES.txt

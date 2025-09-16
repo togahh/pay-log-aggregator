@@ -1,0 +1,31 @@
+{{- if not .Values.elasticsearch.enabled }}
+---
+# External Elasticsearch Service Configuration
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-external
+  labels:
+    {{- include "pay-log-aggregator.labels" . | nindent 4 }}
+spec:
+  type: ExternalName
+  externalName: {{ .Values.elasticsearch.externalHost | default "elasticsearch.example.com" }}
+  ports:
+  - port: 9200
+    targetPort: 9200
+    protocol: TCP
+    name: http
+---
+# Elasticsearch Connection Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: elasticsearch-credentials
+  labels:
+    {{- include "pay-log-aggregator.labels" . | nindent 4 }}
+type: Opaque
+data:
+  url: {{ printf "http://elasticsearch-external:9200" | b64enc }}
+  username: {{ .Values.elasticsearch.auth.username | default "elastic" | b64enc }}
+  password: {{ .Values.elasticsearch.auth.password | default "changeme" | b64enc }}
+{{- end }}

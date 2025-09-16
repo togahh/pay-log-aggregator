@@ -1,0 +1,100 @@
+{{- if .Values.global.configurations.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pay-log-aggregator.fullname" . }}-config
+  labels:
+    {{- include "pay-log-aggregator.labels" . | nindent 4 }}
+data:
+  {{- range $key, $val := .Values.global.configurations.values }}
+  {{ $key | quote }}: {{ $val | quote }}
+  {{- end }}
+  
+  # Application configuration
+  app.yaml: |
+    elasticsearch:
+      url: {{ (index .Values.deployment.containerEnv 0).value | default "http://elasticsearch-master:9200" }}
+      index_prefix: {{ .Values.global.configurations.values.ELASTICSEARCH_INDEX_PREFIX | default "pay-logs" }}
+      timeout: {{ .Values.global.configurations.values.SEARCH_TIMEOUT | default "30s" }}
+      max_results: {{ .Values.global.configurations.values.MAX_SEARCH_RESULTS | default "1000" }}
+    
+    logging:
+      level: {{ (index .Values.deployment.containerEnv 1).value | default "INFO" }}
+      format: "json"
+    
+    server:
+      port: {{ .Values.deployment.containerPort | default 8000 }}
+      workers: {{ (index .Values.deployment.containerEnv 4).value | default "4" }}
+      
+    monitoring:
+      prometheus_port: {{ .Values.prometheus.port | default "9090" }}
+      metrics_enabled: {{ .Values.prometheus.enabled | default true }}
+      tracing_enabled: true
+      
+    processing:
+      batch_size: {{ .Values.global.configurations.values.BATCH_SIZE | default "100" }}
+      compression_enabled: {{ .Values.global.configurations.values.COMPRESSION_ENABLED | default "true" }}
+      retention_days: {{ .Values.global.configurations.values.RETENTION_DAYS | default "90" }}
+
+  # Elasticsearch index mappings
+  elasticsearch-mappings.json: |
+    {
+      "mappings": {
+        "properties": {
+          "timestamp": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          },
+          "level": {
+            "type": "keyword"
+          },
+          "message": {
+            "type": "text",
+            "analyzer": "standard",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "source": {
+            "type": "keyword"
+          },
+          "service": {
+            "type": "keyword"
+          },
+          "trace_id": {
+            "type": "keyword"
+          },
+          "span_id": {
+            "type": "keyword"
+          },
+          "tags": {
+            "type": "object",
+            "dynamic": true
+          },
+          "error": {
+            "properties": {
+              "type": {
+                "type": "keyword"
+              },
+              "message": {
+                "type": "text"
+              },
+              "stack_trace": {
+                "type": "text",
+                "index": false
+              }
+            }
+          }
+        }
+      },
+      "settings": {
+        "number_of_shards": 1,
+        "number_of_replicas": 1,
+        "index.lifecycle.name": "pay-logs-policy",
+        "index.lifecycle.rollover_alias": "pay-logs"
+      }
+    }
+{{- end }}

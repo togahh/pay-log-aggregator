@@ -1,0 +1,28 @@
+apiVersion: v2
+name: pay-log-aggregator
+description: A Helm chart for deploying Pay Log Aggregator - a scalable log aggregation and search system built with FastAPI and Elasticsearch
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+dependencies:
+  - name: elasticsearch
+    version: "8.5.1"
+    repository: "https://helm.elastic.co"
+    condition: elasticsearch.enabled
+
+maintainers:
+  - name: agd-santos
+    email: agd-santos@example.com
+
+keywords:
+  - logging
+  - aggregation
+  - search
+  - fastapi
+  - elasticsearch
+  - observability
+
+home: https://github.com/togahh/pay-log-aggregator
+sources:
+  - https://github.com/togahh/pay-log-aggregator
