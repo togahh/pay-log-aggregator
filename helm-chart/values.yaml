@@ -1,25 +1,32 @@
-# Default values for pay-log-aggregator
-# This is a YAML-formatted file following common-helm-templates patterns
-
-# Global configuration (following common-helm-templates pattern)
+# Global configuration that can be overridden
 global:
-  team: "platform-engineering"
-  defaultTag: "latest"
+  team: "platform"
   defaultImageName: "pay-log-aggregator"
-  namePrefix: ""
+  defaultTag: "latest"
   
-  # Configuration management (similar to common-helm-templates)
+  image:
+    registry: ""
+    repository: "pay-log-aggregator"
+    tag: "latest"
+    pullPolicy: "IfNotPresent"
+  
+  # Environment variables
+  environment:
+    ELASTICSEARCH_HOST: "elasticsearch"
+    ELASTICSEARCH_PORT: "9200"
+    ELASTICSEARCH_INDEX_PREFIX: "pay-logs"
+    BATCH_SIZE: "100"
+    SEARCH_TIMEOUT: "30s"
+    MAX_SEARCH_RESULTS: "1000"
+    RETENTION_DAYS: "90"
+    COMPRESSION_ENABLED: "true"
+  
+  # Global configurations
   configurations:
-    enabled: true
-    values:
-      ELASTICSEARCH_INDEX_PREFIX: "pay-logs"
-      BATCH_SIZE: "100"
-      SEARCH_TIMEOUT: "30s"
-      MAX_SEARCH_RESULTS: "1000"
-      RETENTION_DAYS: "90"
-      COMPRESSION_ENABLED: "true"
+    enabled: false
+    values: {}
 
-# Deployment configuration (following common-helm-templates structure)
+# Deployment configuration
 deployment:
   enabled: true
   
@@ -40,13 +47,13 @@ deployment:
   # Service account for IAM permissions
   createServiceAccount: true
   serviceAccountAnnotations: {}
-  
+
   # Deployment annotations for Prometheus scraping
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "9090"
     prometheus.io/path: "/metrics"
-  
+
   # Resource configuration
   resources:
     limits:
@@ -55,7 +62,7 @@ deployment:
     requests:
       memory: "256Mi"
       cpu: "200m"
-  
+
   # Autoscaling configuration (HPA)
   autoscaling:
     enabled: true
@@ -100,219 +107,79 @@ deployment:
       
   startupProbe:
     enabled: true
-    failureThreshold: 30
+    initialDelaySeconds: 5
     periodSeconds: 10
-    initialDelaySeconds: 10
-    timeoutSeconds: 5
+    timeoutSeconds: 1
+    failureThreshold: 10
     httpGet:
       path: "/health"
-  
-  # Graceful shutdown configuration
+      
+  # Pre-stop hook configuration
   preStopHook:
     enabled: true
-    preStopSeconds: 30
-  terminationGracePeriodSeconds: 45
-  
-  # High availability configuration
-  topologySpreadConstraintsByHostName: true
-  topologySpreadConstraintsByZone: true
-  
-  # Node placement
-  nodeSelector: {}
-  tolerations: []
-  affinity:
-    podAntiAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchExpressions:
-                - key: app.kubernetes.io/name
-                  operator: In
-                  values:
-                    - pay-log-aggregator
-            topologyKey: kubernetes.io/hostname
-  
-  # Environment variables
-  containerEnv:
-    - name: ELASTICSEARCH_URL
-      value: "http://elasticsearch-master:9200"
-    - name: LOG_LEVEL
-      value: "INFO"
-    - name: OTEL_EXPORTER_OTLP_ENDPOINT
-      value: "http://jaeger-collector:14268/api/traces"
-    - name: PROMETHEUS_PORT
-      value: "9090"
-    - name: WORKER_PROCESSES
-      value: "4"
-  
-  # Environment variables from secrets
-  containerValueFrom:
-    - envName: ELASTICSEARCH_PASSWORD
-      name: elasticsearch-credentials
-      key: password
-  
-  # Volume mounts for configuration
-  volumeMounts:
-    - name: config
-      mountPath: /app/config/production
-      readOnly: true
-    - name: logs
-      mountPath: /app/logs
-  
-  # Volumes
-  volumes:
-    - name: config
-      configMap:
-        name: pay-log-aggregator-config
-    - name: logs
-      emptyDir:
-        sizeLimit: "1Gi"
+    preStopSeconds: 10
 
-# Service configuration (following common-helm-templates pattern)
+# Service Account configuration
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# Service configuration
 service:
-  name: "pay-log-aggregator"
-  port: 80
-  protocol: "TCP"
-  annotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "9090"
-    prometheus.io/path: "/metrics"
-
-# Pod Disruption Budget for high availability
-podDisruptionBudget:
-  enabled: true
-  maxUnavailable: 50%
-
-# Prometheus metrics configuration
-prometheus:
-  enabled: true
-  port: 9090
-  path: /metrics
-
-# Elasticsearch dependency configuration
-elasticsearch:
-  enabled: true
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+  annotations: {}
   
-  # External Elasticsearch configuration (when enabled: false)
-  externalHost: "elasticsearch.example.com"
-  auth:
-    username: "elastic"
-    password: "changeme"
-  
-  # Elasticsearch cluster configuration
-  clusterName: "pay-logs-cluster"
-  nodeGroup: "master"
-  
-  # Resources for Elasticsearch
-  resources:
-    requests:
-      cpu: "500m"
-      memory: "1Gi"
-    limits:
-      cpu: "1000m"
-      memory: "2Gi"
-  
-  # Persistence
-  persistence:
-    enabled: true
-    size: "10Gi"
-    storageClass: "gp2"
-  
-  # Elasticsearch configuration
-  esConfig:
-    elasticsearch.yml: |
-      cluster.name: pay-logs-cluster
-      network.host: 0.0.0.0
-      discovery.type: single-node
-      xpack.security.enabled: false
-      xpack.monitoring.collection.enabled: true
-
-# Security configuration
-securityContext:
-  runAsNonRoot: true
-  runAsUser: 1000
-  runAsGroup: 1000
-  fsGroup: 1000
-  seccompProfile:
-    type: RuntimeDefault
-
-containerSecurityContext:
-  allowPrivilegeEscalation: false
-  capabilities:
-    drop:
-      - ALL
-  readOnlyRootFilesystem: false  # FastAPI needs write access for temp files
-  runAsNonRoot: true
-  runAsUser: 1000
-
-# Network policies for security
-networkPolicy:
-  enabled: true
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              name: monitoring
-      ports:
-        - protocol: TCP
-          port: 9090
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              name: ingress-nginx
-      ports:
-        - protocol: TCP
-          port: 8000
-  egress:
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              name: elasticsearch
-      ports:
-        - protocol: TCP
-          port: 9200
-    - to: []
-      ports:
-        - protocol: TCP
-          port: 53
-        - protocol: UDP
-          port: 53
-
-# Monitoring and observability
-monitoring:
-  serviceMonitor:
-    enabled: true
-    namespace: monitoring
-    interval: 30s
-    scrapeTimeout: 10s
-    labels:
-      release: prometheus
-    metricRelabelings: []
-    relabelings: []
-  
-  prometheusRule:
-    enabled: true
-    namespace: monitoring
-    labels:
-      release: prometheus
-
-# Ingress configuration (if needed)
+# Ingress configuration
 ingress:
   enabled: false
   className: "nginx"
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  annotations: {}
   hosts:
-    - host: pay-log-aggregator.example.com
+    - host: pay-log-aggregator.local
       paths:
         - path: /
           pathType: Prefix
-  tls:
-    - secretName: pay-log-aggregator-tls
-      hosts:
-        - pay-log-aggregator.example.com
+  tls: []
+
+# ConfigMap configuration
+configMap:
+  enabled: true
+  data:
+    elasticsearch.yaml: |
+      host: elasticsearch
+      port: 9200
+      index_prefix: pay-logs
+
+# PodDisruptionBudget configuration
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Network Policy configuration
+networkPolicy:
+  enabled: false
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              access: pay-log-aggregator
+  egress:
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 9200  # Elasticsearch
+        - protocol: UDP
+          port: 53    # DNS
 
 # RBAC configuration
 rbac:
@@ -320,11 +187,49 @@ rbac:
   rules:
     - apiGroups: [""]
       resources: ["configmaps", "secrets"]
-      verbs: ["get", "list", "watch"]
+      verbs: ["get", "list"]
     - apiGroups: [""]
       resources: ["pods"]
       verbs: ["get", "list", "watch"]
 
-# Application name override
-nameOverride: ""
-fullnameOverride: ""
+# Security configuration
+security:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+# Pod Security Context
+podSecurityContext:
+  fsGroup: 1000
+
+# External Elasticsearch configuration
+elasticsearch:
+  enabled: true
+  host: "elasticsearch"
+  port: 9200
+  credentials:
+    username: ""
+    password: ""
+    existingSecret: ""
+
+# Prometheus monitoring
+prometheus:
+  enabled: true
+  port: 9090
+  path: "/metrics"
+  interval: "30s"
+
+# Monitoring configuration
+monitoring:
+  serviceMonitor:
+    enabled: true
+    namespace: ""
+    interval: "30s"
+    scrapeTimeout: "10s"
+    path: "/metrics"
+    labels: {}
+    annotations: {}
+    metricRelabelings: []
+    relabelings: []

@@ -57,7 +57,7 @@ team: {{ required "value '.Values.global.team' is required" .Values.global.team 
 Create the name of the service account to use
 */}}
 {{- define "pay-log-aggregator.serviceAccountName" -}}
-{{- if .Values.deployment.createServiceAccount }}
+{{- if .Values.serviceAccount.create }}
 {{- default (include "pay-log-aggregator.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}

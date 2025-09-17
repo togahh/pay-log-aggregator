@@ -1,226 +1,242 @@
 # Pay Log Aggregator
 
-A log aggregation and search system built with FastAPI and Elasticsearch. This was created as an interview exercise to demonstrate skills in large-scale data processing and search functionality.
+A FastAPI-based log aggregation service that provides endpoints for log ingestion, searching, and monitoring with Elasticsearch backend and observability features.
 
-## What it does
-
-This system collects logs from multiple sources, stores them in Elasticsearch, and provides a searchable interface for finding specific patterns or errors. It follows best practices with containerization, structured logging, and observability.
-
-## Key features
-
-- Multi-source log ingestion with batch processing
-- Real-time search using Elasticsearch
-- Error pattern detection and analysis
-- Distributed tracing with OpenTelemetry
-- Structured JSON logging
-- Docker containerization
-- Health checks and metrics
-
-## Architecture
+## 📁 Project Structure
 
 ```
-Log Sources → FastAPI App → Elasticsearch
-                  ↓
-            OpenTelemetry Traces
+pay-log-aggregator/
+├── app/                     # Application code and configuration
+│   ├── main.py             # FastAPI application entry point
+│   ├── models/             # Data models and schemas
+│   ├── services/           # Business logic and services
+│   ├── config/             # Configuration files
+│   ├── tests/              # Unit and integration tests
+│   ├── observability/      # Monitoring and observability setup
+│   ├── Dockerfile          # Container image definition
+│   ├── docker-compose.yml  # Local development environment
+│   ├── requirements.txt    # Python dependencies
+│   ├── pytest.ini         # Test configuration
+│   └── wait-for-it.py     # Service dependency wait script
+├── helm-chart/             # Kubernetes Helm chart
+│   ├── Chart.yaml          # Chart metadata
+│   ├── values.yaml         # Default configuration values
+│   ├── templates/          # Kubernetes resource templates
+│   ├── .helmignore         # Helm package exclusions
+│   └── README.md           # Chart documentation
+├── terraform/              # Infrastructure as Code
+│   ├── modules/            # Reusable Terraform modules
+│   │   └── helm-chart/     # Helm deployment module
+│   ├── workspaces/         # Environment configurations
+│   │   ├── main.tf         # Main configuration
+│   │   ├── variables.tf    # Variable definitions
+│   │   ├── providers.tf    # Provider configurations
+│   │   ├── dev.tfvars      # Development environment
+│   │   ├── staging.tfvars  # Staging environment
+│   │   └── prod.tfvars     # Production environment
+│   ├── scripts/            # Helper scripts
+│   └── README.md           # Infrastructure documentation
+├── logs/                   # Application logs (runtime)
+├── .gitignore             # Git ignore patterns
+└── README.md              # This file
 ```
 
-The system accepts logs via HTTP endpoints, validates them, and stores them in Elasticsearch for searching.
+## 🚀 Quick Start
 
-## Service Level Objectives (SLOs)
+### Local Development
 
-I chose these SLOs because they reflect the core requirements of a log aggregation system:
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd pay-log-aggregator
+   ```
 
-**Availability: 99.9% uptime**
-- Measured by successful health check responses
-- Log systems need high availability since they're critical infrastructure
+2. **Start the development environment:**
+   ```bash
+   cd app
+   docker-compose up -d
+   ```
 
-**Ingestion Latency: 95% of requests under 100ms** 
-- Measured by P95 latency of the /logs/ingest endpoint
-- Fast ingestion prevents log loss during high traffic
+3. **Access the application:**
+   - API: http://localhost:8000
+   - API Documentation: http://localhost:8000/docs
+   - Elasticsearch: http://localhost:9200
+   - Jaeger UI: http://localhost:16686
+   - Prometheus: http://localhost:9090
 
-**Search Performance: 95% of queries under 500ms**
-- Measured by P95 latency of /logs/search endpoint  
-- Quick searches are essential for debugging and troubleshooting
+### Kubernetes Deployment
 
-**Throughput: Handle 10,000 logs per second**
-- Measured by successful ingestions per second
-- Must handle high-volume streams from multiple services
+1. **Deploy using Helm:**
+   ```bash
+   helm install pay-log-aggregator ./helm-chart
+   ```
 
-**Error Rate: Less than 0.1% ingestion failures**
-- Measured by failed vs successful ingestion ratio
-- Log loss is unacceptable for audit and debugging
+2. **Deploy using Terraform:**
+   ```bash
+   cd terraform/workspaces
+   terraform init
+   terraform workspace new dev
+   terraform apply -var-file=dev.tfvars
+   ```
 
-## Tech stack
+## 📖 Component Documentation
 
-- FastAPI for the web framework
-- Elasticsearch for search and storage
-- OpenTelemetry for tracing and observability  
-- Structlog for structured JSON logging
-- Docker for containerization
-- Jaeger for trace visualization
+### 🏗️ Application (`app/`)
 
-## Getting started
+The core FastAPI application with:
+- **RESTful API** for log ingestion and search
+- **Elasticsearch integration** for log storage
+- **Prometheus metrics** for monitoring
+- **Jaeger tracing** for observability
+- **Health checks** and graceful shutdown
 
-### Prerequisites
-- Docker and Docker Compose
-- Python 3.9+ (for local development)
+**Key Files:**
+- `main.py` - Application entry point and API routes
+- `models/` - Pydantic models for request/response validation
+- `services/` - Business logic and external service integrations
+- `config/` - Application configuration and settings
 
-### Run with Docker
+### ⛵ Helm Chart (`helm-chart/`)
 
-1. Clone and start:
+Production-ready Kubernetes deployment with:
+- **Scalable deployment** with HPA support
+- **Service mesh ready** with proper labeling
+- **Security hardened** with security contexts
+- **Monitoring integrated** with ServiceMonitor
+- **Configurable** for multiple environments
+
+### 🏗️ Infrastructure (`terraform/`)
+
+Infrastructure as Code using:
+- **Terraform workspaces** for environment management
+- **Modular design** with reusable components
+- **Multi-environment** support (dev/staging/prod)
+- **Helm provider** for Kubernetes deployments
+- **Best practices** with proper state management
+
+## 🛠️ Development Workflow
+
+### Application Development
+
+1. **Set up local environment:**
+   ```bash
+   cd app
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+2. **Run tests:**
+   ```bash
+   pytest
+   ```
+
+3. **Start local services:**
+   ```bash
+   docker-compose up elasticsearch jaeger prometheus
+   ```
+
+4. **Run application:**
+   ```bash
+   uvicorn main:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+### Infrastructure Development
+
+1. **Helm chart development:**
+   ```bash
+   cd helm-chart
+   helm lint .
+   helm template . --debug
+   ```
+
+2. **Terraform development:**
+   ```bash
+   cd terraform/workspaces
+   terraform fmt -recursive
+   terraform validate
+   terraform plan -var-file=dev.tfvars
+   ```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ELASTICSEARCH_URL` | Elasticsearch connection URL | `http://localhost:9200` |
+| `LOG_LEVEL` | Application log level | `INFO` |
+| `JAEGER_AGENT_HOST` | Jaeger agent hostname | `localhost` |
+| `PORT` | Application port | `8000` |
+
+### Kubernetes Configuration
+
+Environment-specific values are managed through:
+- **Helm values** in `helm-chart/values.yaml`
+- **Terraform variables** in `terraform/workspaces/*.tfvars`
+
+## 📊 Monitoring and Observability
+
+### Metrics
+- **Prometheus** metrics at `/metrics` endpoint
+- **Custom metrics** for log ingestion rates and search performance
+- **Health checks** at `/health` and `/health/ready`
+
+### Tracing
+- **Jaeger** distributed tracing integration
+- **OpenTelemetry** instrumentation
+- **Request correlation** across services
+
+### Logging
+- **Structured logging** with JSON format
+- **Log levels** configurable via environment
+- **Centralized collection** via Elasticsearch
+
+## 🧪 Testing
+
 ```bash
-git clone git@github.com:togahh/pay-log-aggregator.git
-cd pay-log-aggregator
-docker compose up -d
+cd app
+
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=. --cov-report=html
+
+# Run specific test categories
+pytest -m unit
+pytest -m integration
 ```
 
-2. Check it's working:
+## 🚀 Deployment
+
+### Development
 ```bash
-curl http://localhost:8000/health
+cd terraform/workspaces
+terraform workspace select dev
+terraform apply -var-file=dev.tfvars
 ```
 
-### Local development
-
-1. Setup Python environment:
+### Staging
 ```bash
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+terraform workspace select staging
+terraform apply -var-file=staging.tfvars
 ```
 
-2. Start dependencies:
+### Production
 ```bash
-docker compose up -d elasticsearch jaeger
+terraform workspace select prod
+terraform apply -var-file=prod.tfvars
 ```
 
-3. Run the app:
-```bash
-python main.py
-```
+## 🤝 Contributing
 
-## API endpoints
+1. Follow the project structure guidelines
+2. Add tests for new features
+3. Update documentation for changes
+4. Use conventional commit messages
+5. Test in development environment first
 
-**Basic endpoints:**
-- GET / - Service status
-- GET /health - Health check
-- GET /metrics - Service metrics
+## 📄 License
 
-**Log ingestion:**
-- POST /logs/ingest - Add a single log
-- POST /logs/batch-ingest - Add multiple logs
-
-**Search:**
-- POST /logs/search - Search logs with filters
-- GET /logs/patterns - Find error patterns
-
-**Documentation:**
-- http://localhost:8000/docs - Interactive API docs
-- http://localhost:8000/redoc - Documentation
-
-## Usage examples
-
-### Add a log entry
-```bash
-curl -X POST "http://localhost:8000/logs/ingest" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "level": "ERROR",
-    "message": "Database connection failed", 
-    "source": "web-server-01",
-    "service": "user-service"
-  }'
-```
-
-### Search logs
-```bash
-curl -X POST "http://localhost:8000/logs/search" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "error",
-    "level": "ERROR",
-    "limit": 50
-  }'
-```
-
-### Add multiple logs at once
-```bash
-curl -X POST "http://localhost:8000/logs/batch-ingest" \
-  -H "Content-Type: application/json" \
-  -d '[
-    {
-      "level": "INFO",
-      "message": "User login successful",
-      "source": "auth-service"
-    },
-    {
-      "level": "WARNING",
-      "message": "Rate limit exceeded", 
-      "source": "api-gateway"
-    }
-  ]'
-```
-
-## Project structure
-
-```
-├── main.py                 # Main FastAPI application
-├── requirements.txt        # Python dependencies
-├── Dockerfile             # Container setup
-├── docker-compose.yml     # Multi-service configuration
-├── wait-for-it.py         # Service startup coordination
-├── config/
-│   └── otel_config.py     # OpenTelemetry setup
-├── models/
-│   └── log_schemas.py     # Data models and validation
-├── services/
-│   └── search_engine.py   # Elasticsearch integration
-└── tests/
-    ├── test_simple_demo.py    # Main unit tests
-    └── test_models_unit.py    # Model validation tests
-```
-
-## Running tests
-
-```bash
-# Install test dependencies
-pip install pytest pytest-asyncio httpx
-
-# Run tests
-pytest tests/test_simple_demo.py -v
-pytest tests/test_models_unit.py -v
-```
-
-## Monitoring
-
-**Available interfaces:**
-- http://localhost:8000/docs - API documentation and testing
-- http://localhost:16686 - Jaeger tracing UI
-- http://localhost:9200 - Elasticsearch cluster info
-
-**What's monitored:**
-- Request latency and throughput
-- Error rates and patterns  
-- Search query performance
-- Service health and availability
-
-## Configuration
-
-Key environment variables:
-```bash
-ELASTICSEARCH_URL=http://localhost:9200
-OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:14268/api/traces
-```
-
-## Production considerations
-
-For production deployment, you'd want to add:
-
-- Authentication and authorization
-- HTTPS/TLS encryption
-- Rate limiting and input validation
-- Elasticsearch cluster setup
-- Log retention policies
-- Backup and recovery procedures
-- Load balancing for high availability
-
-
+This project is licensed under the MIT License.

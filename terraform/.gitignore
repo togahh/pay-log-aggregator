@@ -10,6 +10,12 @@ crash.*.log
 *.tfvars
 *.tfvars.json
 
+# But include our environment-specific tfvars files
+!workspaces/dev.tfvars
+!workspaces/staging.tfvars
+!workspaces/prod.tfvars
+!*.tfvars.example
+
 # Ignore override files as they are usually used to override resources locally
 override.tf
 override.tf.json

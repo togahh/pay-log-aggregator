@@ -13,13 +13,20 @@ terraform {
   }
 
   # Backend configuration for state management
-  # Uncomment and configure based on your backend setup
+  # Configure based on your backend setup
+  backend "local" {
+    # For local development - replace with remote backend for production
+    path = "terraform-${terraform.workspace}.tfstate"
+  }
+  
+  # Example S3 backend configuration:
   # backend "s3" {
   #   bucket         = "your-terraform-state-bucket"
-  #   key            = "pay-log-aggregator/staging/terraform.tfstate"
+  #   key            = "pay-log-aggregator/terraform.tfstate"
   #   region         = "us-west-2"
   #   dynamodb_table = "terraform-locks"
   #   encrypt        = true
+  #   workspace_key_prefix = "workspaces"
   # }
 }
 
@@ -30,7 +37,7 @@ provider "helm" {
   }
 }
 
-# Configure Kubernetes provider to use existing kubectl context
+# Configure Kubernetes provider to use existing kubectl context  
 provider "kubernetes" {
   config_path = "~/.kube/config"
 }
