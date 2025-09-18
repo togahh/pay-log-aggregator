@@ -39,7 +39,6 @@ class TestSearchEngine:
         search_engine = SearchEngine()
         await search_engine.initialize()
         
-        # Verify index creation was called
         mock_es_client.indices.create.assert_called_once()
         call_args = mock_es_client.indices.create.call_args
         assert call_args[1]['index'] == 'logs'
@@ -61,7 +60,6 @@ class TestSearchEngine:
         
         await search_engine.index_log(log_data)
         
-        # Verify indexing was called with correct parameters
         mock_es_client.index.assert_called_once()
         call_args = mock_es_client.index.call_args
         assert call_args[1]['index'] == 'logs'
@@ -73,7 +71,6 @@ class TestSearchEngine:
         """Test log search functionality"""
         mock_es_class.return_value = mock_es_client
         
-        # Mock search response
         mock_response = {
             'hits': {
                 'total': {'value': 1},
@@ -94,7 +91,6 @@ class TestSearchEngine:
         search_engine = SearchEngine()
         result = await search_engine.search_logs("error", limit=10)
         
-        # Verify search results
         assert result['total_count'] == 1
         assert result['took_ms'] == 15
         assert len(result['logs']) == 1

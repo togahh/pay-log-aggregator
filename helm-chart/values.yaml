@@ -1,4 +1,3 @@
-# Global configuration that can be overridden
 global:
   team: "platform"
   defaultImageName: "pay-log-aggregator"
@@ -10,7 +9,6 @@ global:
     tag: "latest"
     pullPolicy: "IfNotPresent"
   
-  # Environment variables
   environment:
     ELASTICSEARCH_HOST: "elasticsearch"
     ELASTICSEARCH_PORT: "9200"
@@ -21,40 +19,32 @@ global:
     RETENTION_DAYS: "90"
     COMPRESSION_ENABLED: "true"
   
-  # Global configurations
   configurations:
     enabled: false
     values: {}
 
-# Deployment configuration
 deployment:
   enabled: true
   
-  # Image configuration
   image:
     name: "pay-log-aggregator"
-    tag: ""  # Will use global.defaultTag if not specified
+    tag: ""  
     
-  # Container port configuration
   containerPort: 8000
   
-  # Additional ports for monitoring
   extraContainerPorts:
     - name: metrics
       port: 9090
       protocol: TCP
   
-  # Service account for IAM permissions
   createServiceAccount: true
   serviceAccountAnnotations: {}
 
-  # Deployment annotations for Prometheus scraping
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "9090"
     prometheus.io/path: "/metrics"
 
-  # Resource configuration
   resources:
     limits:
       memory: "512Mi"
@@ -63,7 +53,6 @@ deployment:
       memory: "256Mi"
       cpu: "200m"
 
-  # Autoscaling configuration (HPA)
   autoscaling:
     enabled: true
     minReplicas: 2
@@ -84,13 +73,11 @@ deployment:
             value: 50
             periodSeconds: 60
   
-  # Deployment strategy
   deploymentStrategy:
     type: "RollingUpdate"
     maxSurge: 50%
     maxUnavailable: 25%
   
-  # Health check configuration
   livenessProbe:
     enabled: true
     timeoutSeconds: 5
@@ -114,29 +101,21 @@ deployment:
     httpGet:
       path: "/health"
       
-  # Pre-stop hook configuration
   preStopHook:
     enabled: true
     preStopSeconds: 10
 
-# Service Account configuration
 serviceAccount:
-  # Specifies whether a service account should be created
   create: true
-  # Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
   name: ""
 
-# Service configuration
 service:
   type: ClusterIP
   port: 8000
   targetPort: 8000
   annotations: {}
   
-# Ingress configuration
 ingress:
   enabled: false
   className: "nginx"
@@ -148,7 +127,6 @@ ingress:
           pathType: Prefix
   tls: []
 
-# ConfigMap configuration
 configMap:
   enabled: true
   data:
@@ -157,12 +135,10 @@ configMap:
       port: 9200
       index_prefix: pay-logs
 
-# PodDisruptionBudget configuration
 podDisruptionBudget:
   enabled: true
   minAvailable: 1
 
-# Network Policy configuration
 networkPolicy:
   enabled: false
   policyTypes:
@@ -177,11 +153,10 @@ networkPolicy:
     - to: []
       ports:
         - protocol: TCP
-          port: 9200  # Elasticsearch
+          port: 9200 
         - protocol: UDP
-          port: 53    # DNS
+          port: 53    
 
-# RBAC configuration
 rbac:
   create: true
   rules:
@@ -192,7 +167,6 @@ rbac:
       resources: ["pods"]
       verbs: ["get", "list", "watch"]
 
-# Security configuration
 security:
   enabled: true
   runAsNonRoot: true
@@ -200,11 +174,9 @@ security:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
 
-# Pod Security Context
 podSecurityContext:
   fsGroup: 1000
 
-# External Elasticsearch configuration
 elasticsearch:
   enabled: true
   host: "elasticsearch"
@@ -214,14 +186,12 @@ elasticsearch:
     password: ""
     existingSecret: ""
 
-# Prometheus monitoring
 prometheus:
   enabled: true
   port: 9090
   path: "/metrics"
   interval: "30s"
 
-# Monitoring configuration
 monitoring:
   serviceMonitor:
     enabled: true

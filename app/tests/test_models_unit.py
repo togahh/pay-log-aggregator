@@ -37,7 +37,7 @@ class TestLogEntry:
     def test_missing_required_fields(self):
         """Test missing required fields"""
         with pytest.raises(ValidationError):
-            LogEntry(level=LogLevel.INFO)  # Missing message and source
+            LogEntry(level=LogLevel.INFO)
 
 
 class TestSearchQuery:
@@ -56,11 +56,10 @@ class TestSearchQuery:
     
     def test_limit_validation(self):
         """Test limit validation boundaries"""
-        # Valid limit
+
         query = SearchQuery(query="test", limit=100)
         assert query.limit == 100
         
-        # Invalid limit (too high)
         with pytest.raises(ValidationError):
             SearchQuery(query="test", limit=2000)  # Over 1000 limit
 

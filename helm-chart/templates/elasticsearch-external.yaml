@@ -1,6 +1,5 @@
 {{- if not .Values.elasticsearch.enabled }}
 ---
-# External Elasticsearch Service Configuration
 apiVersion: v1
 kind: Service
 metadata:
@@ -16,7 +15,6 @@ spec:
     protocol: TCP
     name: http
 ---
-# Elasticsearch Connection Secret
 apiVersion: v1
 kind: Secret
 metadata:

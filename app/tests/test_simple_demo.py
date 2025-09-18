@@ -33,11 +33,9 @@ class TestBasicValidation:
     
     def test_search_query_limits(self):
         """Test business rule validation"""
-        # Valid query
         query = SearchQuery(query="error", limit=100)
         assert query.limit == 100
         
-        # Invalid - too high limit
         with pytest.raises(ValidationError):
             SearchQuery(query="error", limit=5000)
 
@@ -54,7 +52,6 @@ class TestBusinessLogic:
             LogEntry(level=LogLevel.ERROR, message="Error 2", source="app"),
         ]
         
-        # Filter errors
         errors = [log for log in logs if log.level == LogLevel.ERROR]
         assert len(errors) == 2
         assert all(log.level == LogLevel.ERROR for log in errors)
@@ -67,7 +64,6 @@ class TestBusinessLogic:
             LogEntry(level=LogLevel.INFO, message="User logout", source="auth"),
         ]
         
-        # Simple keyword search
         database_logs = [log for log in logs if "database" in log.message.lower()]
         assert len(database_logs) == 1
         assert "Database" in database_logs[0].message
@@ -92,16 +88,13 @@ class TestEdgeCases:
         assert log.source == "app-service_v2.1"
 
 
-# Simple mock example - shows you understand mocking
 def test_with_simple_mock():
     """Simple mock example for interview"""
     from unittest.mock import Mock
     
-    # Mock external service
     mock_logger = Mock()
     mock_logger.log.return_value = True
     
-    # Test the mock
     result = mock_logger.log("test message")
     assert result is True
     mock_logger.log.assert_called_once_with("test message")

@@ -70,7 +70,6 @@ class SearchEngine:
         """Search logs based on query parameters"""
         query = {"bool": {"must": []}}
         
-        # Text search
         if search_query.query:
             query["bool"]["must"].append({
                 "multi_match": {
@@ -79,7 +78,6 @@ class SearchEngine:
                 }
             })
         
-        # Filters
         if search_query.level:
             query["bool"]["must"].append({"term": {"level": search_query.level}})
         
@@ -89,7 +87,6 @@ class SearchEngine:
         if search_query.service:
             query["bool"]["must"].append({"term": {"service": search_query.service}})
         
-        # Time range
         if search_query.start_time or search_query.end_time:
             time_range = {}
             if search_query.start_time:

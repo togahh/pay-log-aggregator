@@ -1,4 +1,3 @@
-# Environment and workspace configuration
 variable "environment" {
   description = "Environment name (automatically set based on workspace)"
   type        = string
@@ -16,7 +15,6 @@ variable "chart_version" {
   default     = "0.1.0"
 }
 
-# Image configuration
 variable "image_repository" {
   description = "Docker image repository"
   type        = string
@@ -40,7 +38,6 @@ variable "image_pull_policy" {
   }
 }
 
-# Scaling configuration
 variable "replica_count" {
   description = "Number of replicas"
   type        = number
@@ -77,7 +74,6 @@ variable "target_memory_utilization" {
   default     = 80
 }
 
-# Resource configuration
 variable "cpu_request" {
   description = "CPU request for containers"
   type        = string
@@ -102,7 +98,6 @@ variable "memory_limit" {
   default     = "512Mi"
 }
 
-# Service configuration
 variable "service_type" {
   description = "Kubernetes service type"
   type        = string
@@ -126,7 +121,6 @@ variable "service_annotations" {
   default     = {}
 }
 
-# Ingress configuration
 variable "enable_ingress" {
   description = "Enable ingress for external access"
   type        = bool
@@ -163,7 +157,6 @@ variable "tls_secret_name" {
   default     = ""
 }
 
-# Elasticsearch configuration
 variable "elasticsearch_enabled" {
   description = "Enable Elasticsearch integration"
   type        = bool
@@ -201,7 +194,6 @@ variable "elasticsearch_password" {
   sensitive   = true
 }
 
-# Monitoring configuration
 variable "enable_monitoring" {
   description = "Enable Prometheus monitoring"
   type        = bool
@@ -220,7 +212,6 @@ variable "prometheus_port" {
   default     = "http"
 }
 
-# Security configuration
 variable "enable_security_context" {
   description = "Enable security context"
   type        = bool
@@ -251,7 +242,6 @@ variable "enable_network_policy" {
   default     = false
 }
 
-# Application configuration
 variable "log_level" {
   description = "Application log level"
   type        = string
@@ -287,7 +277,6 @@ variable "extra_annotations" {
   default     = {}
 }
 
-# Helm configuration
 variable "helm_timeout" {
   description = "Timeout for Helm operations (seconds)"
   type        = number

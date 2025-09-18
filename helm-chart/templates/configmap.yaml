@@ -10,7 +10,6 @@ data:
   {{ $key | quote }}: {{ $val | quote }}
   {{- end }}
   
-  # Application configuration
   app.yaml: |
     elasticsearch:
       url: {{ (index .Values.deployment.containerEnv 0).value | default "http://elasticsearch-master:9200" }}
@@ -36,7 +35,6 @@ data:
       compression_enabled: {{ .Values.global.configurations.values.COMPRESSION_ENABLED | default "true" }}
       retention_days: {{ .Values.global.configurations.values.RETENTION_DAYS | default "90" }}
 
-  # Elasticsearch index mappings
   elasticsearch-mappings.json: |
     {
       "mappings": {

@@ -3,10 +3,8 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 import time
 
-# Get meter
 meter = metrics.get_meter(__name__)
 
-# Create metrics
 log_ingestion_counter = meter.create_counter(
     name="logs_ingested_total",
     description="Total number of logs ingested",

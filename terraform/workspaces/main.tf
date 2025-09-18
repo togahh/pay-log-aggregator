@@ -1,10 +1,7 @@
-# Local values and workspace configuration
 locals {
-  # Get environment from workspace name, fallback to variable if set
   environment = var.environment != "" ? var.environment : terraform.workspace
   chart_path  = "../../helm-chart"
   
-  # Common labels applied to all resources
   common_labels = merge({
     environment = local.environment
     project     = "pay-log-aggregator"
@@ -12,14 +9,12 @@ locals {
     workspace   = terraform.workspace
   }, var.extra_labels)
 
-  # Common annotations applied to all resources
   common_annotations = merge({
     "terraform.io/workspace"   = terraform.workspace
     "terraform.io/environment" = local.environment
     "terraform.io/managed-by"  = "terraform"
   }, var.extra_annotations)
 
-  # Environment variables for the application
   app_env_vars = merge({
     ENVIRONMENT = local.environment
     LOG_LEVEL   = var.log_level
@@ -27,11 +22,9 @@ locals {
   }, var.extra_env_vars)
 }
 
-# Deploy the pay-log-aggregator using the Helm chart module
 module "pay_log_aggregator" {
   source = "../modules/helm-chart"
 
-  # Chart configuration
   chart_name       = "pay-log-aggregator"
   chart_version    = var.chart_version
   chart_path       = local.chart_path
@@ -39,15 +32,12 @@ module "pay_log_aggregator" {
   create_namespace = true
   environment      = local.environment
 
-  # Image configuration
   image_repository  = var.image_repository
   image_tag         = var.image_tag
   image_pull_policy = var.image_pull_policy
 
-  # Scaling configuration
   replica_count = var.replica_count
 
-  # Resource configuration
   resources = {
     requests = {
       cpu    = var.cpu_request
@@ -59,7 +49,6 @@ module "pay_log_aggregator" {
     }
   }
 
-  # Autoscaling configuration
   autoscaling = {
     enabled                              = var.enable_autoscaling
     min_replicas                         = var.min_replicas
@@ -68,14 +57,12 @@ module "pay_log_aggregator" {
     target_memory_utilization_percentage = var.target_memory_utilization
   }
 
-  # Service configuration
   service = {
     type        = var.service_type
     port        = var.service_port
     annotations = merge(local.common_annotations, var.service_annotations)
   }
 
-  # Ingress configuration
   ingress = {
     enabled     = var.enable_ingress
     class_name  = var.ingress_class_name
@@ -99,7 +86,6 @@ module "pay_log_aggregator" {
     ] : []
   }
 
-  # Elasticsearch configuration
   elasticsearch = {
     enabled  = var.elasticsearch_enabled
     host     = var.elasticsearch_host
@@ -109,7 +95,6 @@ module "pay_log_aggregator" {
     password = var.elasticsearch_password
   }
 
-  # Monitoring configuration
   monitoring = {
     enabled = var.enable_monitoring
     prometheus = {
@@ -119,34 +104,38 @@ module "pay_log_aggregator" {
     }
   }
 
-  # Security configuration
   security = {
     security_context = var.enable_security_context ? {
       run_as_non_root = true
       run_as_user     = var.run_as_user
       run_as_group    = var.run_as_group
       fs_group        = var.fs_group
-    } : {}
+    } : {
+      run_as_non_root = null
+      run_as_user = null
+      run_as_group = null
+      fs_group = null
+    }
     container_security_context = var.enable_security_context ? {
       allow_privilege_escalation = false
       drop_capabilities          = ["ALL"]
       read_only_root_filesystem  = true
-    } : {}
+    } : {
+      allow_privilege_escalation = null
+      drop_capabilities = null
+      read_only_root_filesystem = null
+    }
     network_policy = {
       enabled = var.enable_network_policy
     }
   }
 
-  # Additional workspace-specific values
   extra_values = {
-    # Environment variables
     env = local.app_env_vars
 
-    # Labels and annotations
     podLabels      = local.common_labels
     podAnnotations = local.common_annotations
 
-    # Workspace-specific configuration
     config = {
       workspace   = terraform.workspace
       environment = local.environment
@@ -155,7 +144,6 @@ module "pay_log_aggregator" {
     }
   }
 
-  # Helm configuration
   timeout         = var.helm_timeout
   wait            = var.helm_wait
   wait_for_jobs   = true

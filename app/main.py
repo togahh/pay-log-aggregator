@@ -12,7 +12,6 @@ from models.log_schemas import LogEntry, SearchQuery, LogSearchResponse, ErrorPa
 from services.search_engine import SearchEngine
 from config.otel_config import setup_telemetry, instrument_app
 
-# Setup structured logging
 structlog.configure(
     processors=[
         structlog.stdlib.filter_by_level,
@@ -33,17 +32,14 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
-# Initialize services
 search_engine = SearchEngine()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     logger.info("Starting Log Aggregator API...")
     await search_engine.initialize()
     logger.info("Services initialized")
     yield
-    # Shutdown
     logger.info("Shutting down Log Aggregator API...")
 
 app = FastAPI(
@@ -53,11 +49,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Setup OpenTelemetry
 tracer = setup_telemetry()
 app = instrument_app(app)
 
-# Simple CORS for development
 app.add_middleware(CORSMiddleware, allow_origins=["*"])
 
 @app.get("/")
@@ -79,7 +73,6 @@ async def ingest_log(log_entry: LogEntry) -> IngestResponse:
     """Ingest a single log entry"""
     with tracer.start_as_current_span("ingest_log") as span:
         try:
-            # Add correlation ID for tracing
             correlation_id = str(uuid.uuid4())
             log_entry_dict = log_entry.model_dump()
             log_entry_dict["correlation_id"] = correlation_id
@@ -88,7 +81,6 @@ async def ingest_log(log_entry: LogEntry) -> IngestResponse:
             span.set_attribute("log_level", log_entry.level)
             span.set_attribute("log_source", log_entry.source)
             
-            # Process log immediately in background
             asyncio.create_task(process_log_entry(log_entry_dict))
             
             logger.info(
@@ -114,7 +106,6 @@ async def ingest_log(log_entry: LogEntry) -> IngestResponse:
 async def process_log_entry(log_entry_dict: dict):
     """Process a single log entry in the background"""
     try:
-        # Store in Elasticsearch
         await search_engine.index_log(log_entry_dict)
         logger.info(
             "Log entry processed",
@@ -137,7 +128,6 @@ async def batch_ingest_logs(logs: List[LogEntry]) -> IngestResponse:
             span.set_attribute("correlation_id", correlation_id)
             span.set_attribute("batch_size", len(logs))
             
-            # Process all logs in background
             tasks = []
             for log_entry in logs:
                 log_entry_dict = log_entry.model_dump()
@@ -177,7 +167,6 @@ async def search_logs(
 ):
     """Search logs with various filters"""
     with tracer.start_as_current_span("search_logs") as span:
-        # Parse datetime strings
         start_dt = datetime.fromisoformat(start_time) if start_time else None
         end_dt = datetime.fromisoformat(end_time) if end_time else None
         
@@ -223,7 +212,6 @@ async def get_error_patterns(hours: int = 24):
 async def get_metrics():
     """Get service metrics"""
     
-    # In a real implementation, you'd integrate with Prometheus metrics
     return {
         "service": "log-aggregator",
         "timestamp": datetime.utcnow().isoformat(),

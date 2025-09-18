@@ -39,19 +39,17 @@ def test_log_ingestion_success(mock_search_engine, test_client):
 def test_log_ingestion_invalid_data(test_client):
     """Test log ingestion with invalid data"""
     invalid_log = {
-        "level": "INVALID_LEVEL",  # Invalid enum value
+        "level": "INVALID_LEVEL",
         "message": "Test message"
-        # Missing required fields
     }
     
     response = test_client.post("/logs/ingest", json=invalid_log)
-    assert response.status_code == 422  # Validation error
+    assert response.status_code == 422
 
 
 @patch('main.search_engine')
 def test_log_search(mock_search_engine, test_client):
     """Test log search functionality"""
-    # Mock search results
     mock_search_engine.search_logs = AsyncMock(return_value={
         "logs": [
             {

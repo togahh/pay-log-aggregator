@@ -12,7 +12,6 @@ from opentelemetry.instrumentation.elasticsearch import ElasticsearchInstrumento
 def setup_telemetry():
     """Initialize OpenTelemetry"""
     
-    # Trace setup
     trace.set_tracer_provider(TracerProvider())
     tracer = trace.get_tracer(__name__)
     
@@ -24,7 +23,6 @@ def setup_telemetry():
     span_processor = BatchSpanProcessor(otlp_exporter)
     trace.get_tracer_provider().add_span_processor(span_processor)
     
-    # Metrics setup
     metric_reader = PeriodicExportingMetricReader(
         OTLPMetricExporter(
             endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:14268/api/traces"),

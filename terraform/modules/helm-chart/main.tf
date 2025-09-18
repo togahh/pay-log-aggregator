@@ -1,4 +1,3 @@
-# Create namespace if needed
 resource "kubernetes_namespace" "this" {
   count = var.create_namespace ? 1 : 0
 
@@ -15,9 +14,7 @@ resource "kubernetes_namespace" "this" {
   }
 }
 
-# Generate values for the Helm chart
 locals {
-  # Base values that apply to all environments
   base_values = {
     image = {
       repository = var.image_repository
@@ -41,30 +38,25 @@ locals {
 
     security = var.security
 
-    # Environment-specific labels
     labels = {
       environment = var.environment
     }
 
-    # Environment-specific annotations
     annotations = {
       "app.kubernetes.io/managed-by" = "terraform"
       "terraform.io/environment"     = var.environment
     }
   }
 
-  # Merge base values with extra values
   chart_values = merge(local.base_values, var.extra_values)
 }
 
-# Deploy the Helm chart
 resource "helm_release" "this" {
   name       = var.chart_name
   chart      = var.chart_path
   namespace  = var.namespace
   version    = var.chart_version
 
-  # Helm release configuration
   timeout         = var.timeout
   wait            = var.wait
   wait_for_jobs   = var.wait_for_jobs
@@ -73,7 +65,6 @@ resource "helm_release" "this" {
   recreate_pods   = var.recreate_pods
   max_history     = var.max_history
 
-  # Pass values to the chart
   values = [
     yamlencode(local.chart_values)
   ]
@@ -83,45 +74,3 @@ resource "helm_release" "this" {
   ]
 }
 
-# Health check for the deployment
-resource "kubernetes_manifest" "health_check" {
-  count = var.wait ? 1 : 0
-
-  manifest = {
-    apiVersion = "v1"
-    kind       = "Pod"
-    metadata = {
-      name      = "${var.chart_name}-health-check-${formatdate("YYYYMMDD-hhmmss", timestamp())}"
-      namespace = var.namespace
-      labels = {
-        "app.kubernetes.io/name"       = "${var.chart_name}-health-check"
-        "app.kubernetes.io/instance"   = var.chart_name
-        "app.kubernetes.io/component"  = "health-check"
-        "app.kubernetes.io/part-of"    = var.chart_name
-        "app.kubernetes.io/managed-by" = "terraform"
-        "environment"                  = var.environment
-      }
-    }
-    spec = {
-      restartPolicy = "Never"
-      containers = [{
-        name  = "health-check"
-        image = "curlimages/curl:latest"
-        command = [
-          "sh", "-c",
-          "curl -f http://${var.chart_name}.${var.namespace}.svc.cluster.local:${var.service.port}/health || exit 1"
-        ]
-      }]
-    }
-  }
-
-  depends_on = [
-    helm_release.this
-  ]
-
-  lifecycle {
-    ignore_changes = [
-      manifest.metadata.name
-    ]
-  }
-}

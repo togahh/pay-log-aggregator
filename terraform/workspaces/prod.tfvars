@@ -1,11 +1,8 @@
-# Production environment configuration
 namespace = "pay-log-aggregator"
 
-# Image configuration
-image_tag         = "1.0.0"  # Use specific version tags in production
+image_tag         = "1.0.0"
 image_pull_policy = "IfNotPresent"
 
-# Scaling configuration
 replica_count       = 3
 enable_autoscaling  = true
 min_replicas        = 3
@@ -13,13 +10,11 @@ max_replicas        = 10
 target_cpu_utilization    = 80
 target_memory_utilization = 85
 
-# Resource configuration (production-sized)
 cpu_request    = "200m"
 memory_request = "256Mi"
 cpu_limit      = "500m"
 memory_limit   = "512Mi"
 
-# Service configuration
 service_type = "ClusterIP"
 service_port = 8000
 service_annotations = {
@@ -27,7 +22,6 @@ service_annotations = {
   "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled" = "true"
 }
 
-# Ingress configuration
 enable_ingress      = true
 ingress_class_name  = "nginx"
 ingress_host        = "pay-log-aggregator.example.com"
@@ -45,30 +39,24 @@ ingress_annotations = {
   "nginx.ingress.kubernetes.io/proxy-send-timeout"       = "60"
 }
 
-# Elasticsearch configuration
 elasticsearch_enabled  = true
 elasticsearch_host     = "elasticsearch-prod"
 elasticsearch_port     = 9200
 elasticsearch_protocol = "https"
 elasticsearch_username = "elastic"
-# elasticsearch_password should be set via environment variable or secret
 
-# Monitoring configuration
 enable_monitoring = true
 prometheus_path   = "/metrics"
 
-# Security configuration (strict for production)
 enable_security_context = true
 enable_network_policy   = true
 run_as_user             = 1000
 run_as_group            = 3000
 fs_group                = 2000
 
-# Application configuration
 log_level  = "INFO"
 debug_mode = false
 
-# Additional environment variables
 extra_env_vars = {
   ENVIRONMENT     = "production"
   ENABLE_CORS     = "true"
@@ -79,7 +67,6 @@ extra_env_vars = {
   TRACING_ENABLED = "true"
 }
 
-# Additional labels
 extra_labels = {
   cost-center = "engineering"
   team        = "platform"
@@ -88,7 +75,6 @@ extra_labels = {
   monitoring  = "critical"
 }
 
-# Additional annotations
 extra_annotations = {
   "production.kubernetes.io/environment" = "production"
   "monitoring.coreos.com/scrape"         = "true"
@@ -97,7 +83,6 @@ extra_annotations = {
   "alerting.kubernetes.io/critical"      = "true"
 }
 
-# Helm configuration (conservative for production)
 helm_timeout         = 900
 helm_wait            = true
 helm_atomic          = true
